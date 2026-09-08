@@ -16,6 +16,10 @@ jobs:
           sudo apt-get remove -y '^dotnet-.*' '^llvm-.*' 'php.*' '^mongodb-.*' '^mysql-.*' azure-cli google-chrome-stable firefox powershell
           sudo apt-get autoremove -y
           sudo apt-get clean
+          
+          # Hapus swapfile lama jika ada, lalu buat baru
+          sudo swapoff -a || true
+          sudo rm -f /swapfile
           sudo fallocate -l 16G /swapfile
           sudo chmod 600 /swapfile
           sudo mkswap /swapfile

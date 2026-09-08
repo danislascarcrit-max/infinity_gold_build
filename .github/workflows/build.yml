@@ -54,7 +54,7 @@ jobs:
 
           for ((i=1; i<=ATTEMPTS; i++)); do
             echo "Sync attempt $i of $ATTEMPTS"
-            if timeout $MAX_SYNC_TIME repo sync -c -j$(nproc) --force-sync --no-clone-bundle --no-tags --disable-repo-verification --optimized-fetch --prune; then
+            if timeout $MAX_SYNC_TIME repo sync -c -j$(nproc) --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune; then
               echo "Sync successful on attempt $i"
               break
             else
@@ -89,7 +89,29 @@ jobs:
 
           # 3. Setup Private Keys (Infinity Keys Template)
           echo "=== Setting up Private Keys ==="
-          git clone https://github.com/ProjectInfinity-X/vendor_infinity_priv_keys-template.git -b QPR3 vendor/infinity-priv/keys || { echo "Failed to clone priv keys"; exit 1; }
+          MAX_KEY_ATTEMPTS=3
+          for ((i=1; i<=MAX_KEY_ATTEMPTS; i++)); do
+            echo "Private keys clone attempt $i of $MAX_KEY_ATTEMPTS"
+            if git clone https://github.com/ProjectInfinity-X/vendor_infinity_priv_keys-template.git -b QPR3 vendor/infinity-priv/keys; then
+              echo "Private keys cloned successfully on attempt $i"
+              break
+            else
+              echo "Private keys clone attempt $i failed"
+              if [ $i -lt $MAX_KEY_ATTEMPTS ]; then
+                echo "Waiting 10 seconds before retry..."
+                sleep 10
+                # Remove partial clone if exists
+                rm -rf vendor/infinity-priv/keys
+              fi
+            fi
+          done
+
+          # Verify keys directory exists
+          if [ ! -d "vendor/infinity-priv/keys" ]; then
+            echo "ERROR: Failed to clone private keys after $MAX_KEY_ATTEMPTS attempts"
+            exit 1
+          fi
+
           cd vendor/infinity-priv/keys
           chmod +x keys.sh
           ./keys.sh || { echo "Failed to run keys.sh"; exit 1; }

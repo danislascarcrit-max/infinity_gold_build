@@ -6,6 +6,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -13,14 +14,14 @@ jobs:
       - name: Clean Up Disk Space & Add Swap
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/share/powershell
-          sudo apt-get remove -y '^dotnet-.*' '^llvm-.*' 'php.*' '^mongodb-.*' '^mysql-.*' azure-cli google-chrome-stable firefox powershell
+          sudo apt-get remove -y '^dotnet-.*' '^llvm-.*' 'php.*' '^mongodb-.*' '^mysql-.*' azure-cli google-chrome-stable firefox powershell || true
           sudo apt-get autoremove -y
           sudo apt-get clean
-          
+
           # Hapus swapfile lama jika ada, lalu buat baru
           sudo swapoff -a || true
           sudo rm -f /swapfile
-          sudo fallocate -l 16G /swapfile
+          sudo fallocate -l 8G /swapfile
           sudo chmod 600 /swapfile
           sudo mkswap /swapfile
           sudo swapon /swapfile
@@ -35,14 +36,14 @@ jobs:
           mkdir -p ~/rom && cd ~/rom
           git config --global user.name "Danish Asnal Lu'Aizumar"
           git config --global user.email "email_kamu@gmail.com"
-          
+
           # 1. Sync Source Code Project Infinity-X
-          repo init -u https://github.com/ProjectInfinity-X/manifest -b QPR3 --depth=1
+          repo init -u https://github.com/ProjectInfinity-X/manifest.git -b QPR3 --depth=1 --git-lfs
           repo sync -c -j8 --force-sync --no-clone-bundle --no-tags
 
           # 2. Clone Device Trees
           git clone https://github.com/silly-moon/device_xiaomi_gold.git -b Luna device/xiaomi/gold
-          git clone https://github.com/Dhterech/android_kernel_xiaomi_gold.git device/xiaomi/gold-kernel
+          git clone https://github.com/Dhterech/android_kernel_xiaomi_gold.git kernel/xiaomi/gold
           git clone https://github.com/Dhterech/android_vendor_xiaomi_gold.git vendor/xiaomi/gold
           git clone https://github.com/LineageOS/android_device_mediatek_sepolicy_vndr.git -b lineage-22.1 device/mediatek/sepolicy_vndr
           git clone https://github.com/techyminati/android_vendor_mediatek_ims.git vendor/mediatek/ims
@@ -59,18 +60,13 @@ jobs:
         run: |
           cd ~/rom
           source build/envsetup.sh
-          lunch infinity_gold-ap3a-userdebug
-          mka bacon -j4
+          lunch infinity_gold-ap3a-userdebug || lunch infinity_gold-userdebug
+          mka bacon -j$(nproc --all)
 
-      - name: Upload Output
-        run: |
-          cd ~/rom
-          ZIP_PATH=$(ls out/target/product/gold/Infinity*.zip 2>/dev/null | head -n 1)
-          if [ -f "$ZIP_PATH" ]; then
-            echo "File installer ditemukan: $ZIP_PATH"
-            # Tempatkan perintah upload rclone atau artifact provider di sini
-          else
-            echo "Build gagal: File ZIP tidak ditemukan."
-            exit 1
-          fi
-          
+      - name: Upload Artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Infinity-X-gold
+          path: out/target/product/gold/Infinity*.zip
+          retention-days: 30

@@ -38,7 +38,7 @@ jobs:
           git config --global user.email "email_kamu@gmail.com"
 
           # 1. Sync Source Code Project Infinity-X
-          repo init -u https://github.com/ProjectInfinity-X/manifest.git -b QPR3 --depth=1 --git-lfs
+          repo init -u https://github.com/ProjectInfinity-X/manifest.git -b QPR3 --depth=1
           repo sync -c -j8 --force-sync --no-clone-bundle --no-tags
 
           # 2. Clone Device Trees
@@ -60,7 +60,7 @@ jobs:
         run: |
           cd ~/rom
           source build/envsetup.sh
-          lunch infinity_gold-ap3a-userdebug || lunch infinity_gold-userdebug
+          lunch infinity_gold-userdebug
           mka bacon -j$(nproc --all)
 
       - name: Upload Artifact
